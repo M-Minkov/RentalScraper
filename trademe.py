@@ -1,26 +1,25 @@
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
 
+
 class Place:
 
     # Saving house rental info
-    def __init__(self, URL=None, info=None):
+    def __init__(self, new_url=None, raw_data=None):
 
-        self.URL = URL
-        self.info = info
+        self.URL = new_url
+        self.info = raw_data
 
         # print(Place.split_text(info))
 
         self.address, \
-        self.available, \
-        self.bedroom_amount, \
-        self.bathroom_amount, \
-        self.parking, \
-        self.rent = Place.split_text(info)
-        
+            self.available, \
+            self.bedroom_amount, \
+            self.bathroom_amount, \
+            self.parking, \
+            self.rent = Place.split_text(self.info)
 
         self.rent_per_person = self.rent // self.bedroom_amount
-
 
     def __str__(self):
 
@@ -34,23 +33,22 @@ price per person: ${}
         return result
 
     # Splitting the HTML info of the trade me house
-    def split_text(TEXT):
+    @staticmethod
+    def split_text(text):
 
-        information = TEXT.split("\n")
+        information = text.split("\n")
 
-        remove_text = ["No Photo", "Private listing", "Video"]
+        # remove_text = ["No Photo", "Private listing", "Video"]
 
         while information[0].split()[0] != "Listed":
             information.pop(0)
 
-
-        
         address = information[1]
         available = information[2]
 
         if not information[3].isdigit():
             information = information[:3] + information[4:]
-        
+
         bedrooms = int(information[3])
         bathrooms = int(information[4])
         parking = 0
@@ -62,12 +60,7 @@ price per person: ${}
         else:
             rent = int(information[5].split()[0][1:])
 
-
-
-        return (address, available, bedrooms, bathrooms, parking, rent)
-        
-        
-
+        return address, available, bedrooms, bathrooms, parking, rent
 
 
 lowest_price = 300
@@ -86,26 +79,21 @@ browser = Firefox(options=options)
 # List of houses
 all_houses = []
 
-
-
-URL = "https://www.trademe.co.nz/a/property/residential/rent/auckland/auckland-city/city-centre/search?price_min={}&price_max={}&bedrooms_min={}&sort_order={}&page={}".format(
-    lowest_price,
-    highest_price,
-    minimum_bedrooms,
-    sort_order,
-    page_number)
+URL = "https://www.trademe.co.nz/a/property/residential/rent/auckland/" + \
+      "auckland-city/city-centre/search?price_min={}&price_max={}&bedrooms_min={}&sort_order={}&page={}".format(
+        lowest_price,
+        highest_price,
+        minimum_bedrooms,
+        sort_order,
+        page_number)
 
 browser.get(URL)
 results = browser.find_elements_by_class_name("tm-property-search-card__link")
 
-
-
-
-while len(results) > 0 :
+while len(results) > 0:
     print(page_number)
-    
-    for house in results:
 
+    for house in results:
         link = house.get_property("href")
         info = house.text
 
@@ -113,17 +101,17 @@ while len(results) > 0 :
 
     page_number += 1
 
-    URL = "https://www.trademe.co.nz/a/property/residential/rent/auckland/auckland-city/city-centre/search?price_min={}&price_max={}&bedrooms_min={}&sort_order={}&page={}".format(
-        lowest_price,
-        highest_price,
-        minimum_bedrooms,
-        sort_order,
-        page_number)
+    URL = "https://www.trademe.co.nz/a/property/residential/rent/auckland/" + \
+          "auckland-city/city-centre/search?price_min={}&price_max={}&bedrooms_min={}&sort_order={}&page={}".format(
+              lowest_price,
+              highest_price,
+              minimum_bedrooms,
+              sort_order,
+              page_number)
 
     browser.get(URL)
     results = browser.find_elements_by_class_name("tm-property-search-card__link")
 
-
-#for i in all_houses:
+# for i in all_houses:
 #    print(i)
 #    print()
