@@ -1,5 +1,7 @@
 class RentalProperty:
 
+    CSV_HEADER = "address,available_date,bedroom_amount,bathroom_amount,parking,rent"
+
     # Saving house rental info
     def __init__(self, new_url=None, raw_data=None):
 
@@ -28,7 +30,11 @@ price per person: ${}
 
         return result
 
-    # Splitting the HTML info of the trade me house
+    def get_csv_format(self):
+        properties = [self.address, self.available, self.bedroom_amount, self.bathroom_amount, self.parking, self.rent]
+        return ','.join([str(i) for i in properties])
+
+    # Splitting the HTML info of the trade me house into usable values
     @staticmethod
     def split_text(text):
 
