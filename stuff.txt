@@ -1,0 +1,10 @@
+address,available_date,bedroom_amount,bathroom_amount,parking,rent333/72 Nelson Street, City Centre, Auckland City,Available: Now,2,1,0,300
+GF/147 Hobson Street, City Centre, Auckland City,Available: Now,2,1,0,300
+L6/189 Hobson Street, City Centre, Auckland City,Available: Now,2,1,0,300
+1N/147 Hobson Street, City Centre, Auckland City,Available: Now,2,1,0,300
+314/23 Whitaker Place, City Centre, Auckland City,Available: Now,3,1,0,300
+834/72 Nelson St, City Centre, Auckland City,Available: Now,2,1,0,300
+113 Vincent Street, City Centre, Auckland City,Available: Now,2,1,0,310
+30 Symonds Street, City Centre, Auckland City,Available: Now,2,1,0,315
+189 Hobson Street, City Centre, Auckland City,Available: Now,2,1,0,315
+1307/72 Nelson St, City Centre, Auckland City,Available: Now,2,1,0,320

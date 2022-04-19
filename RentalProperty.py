@@ -62,4 +62,4 @@ price per person: ${}
         else:
             rent = int(information[5].split()[0][1:])
 
-        return address, available, bedrooms, bathrooms, parking, rent
+        return '"' + address + '"', available, bedrooms, bathrooms, parking, rent
