@@ -1,6 +1,7 @@
 from RentalBrowser import RentalBrowser
 from RentalProperty import RentalProperty
 import os
+from time import sleep
 
 def get_int_input(prompt, default):
     val = input(f"{prompt} [{default}]: ")
@@ -34,3 +35,6 @@ with open(out_path, "w", encoding="utf-8") as f:
         f.write(i.get_csv_format() + "\n")
 
 browser.end()
+
+print("All done! Results saved to output_folder/output.csv")
+sleep(4)
