@@ -1,17 +1,40 @@
-from selenium.webdriver import Firefox
+from selenium.webdriver import Firefox, Chrome, Edge, Safari
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
-
+from selenium.common.exceptions import WebDriverException
 from RentalProperty import RentalProperty
 
 
 class RentalBrowser:
 
     def __init__(self, headless=False):
+        self.browsers_available = []
         self.options = Options()
         if headless:
             self.options.add_argument('--headless=new')
-        self.browser = Firefox(options=self.options)
+        self.browser = self.find_browser()
+
+    def find_browser(self):
+        browsers = ["Firefox", "Chrome", "Edge", "Safari"]
+        for browser in browsers:
+            try:
+                test_browser = None
+
+                if browser == "Firefox":
+                    test_browser = Firefox(options=self.options)
+                elif browser == "Chrome":
+                    test_browser = Chrome(options=self.options)
+                elif browser == "Edge":
+                    test_browser = Edge(options=self.options)
+                elif browser == "Safari":
+                    test_browser = Safari(options=self.options)
+                
+                if test_browser is not None:
+                    return test_browser
+                
+            except WebDriverException:
+                continue
+        raise RuntimeError("No supported browsers are available on this system.")
 
     # Wrapper for going to URL
     def go_to_page(self, url):
