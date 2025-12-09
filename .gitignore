@@ -16,6 +16,7 @@ dist/
 build/
 *.egg
 *.whl
+output_folder/
 
 
 # Unit test / coverage reports
