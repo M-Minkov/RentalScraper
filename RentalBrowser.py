@@ -1,5 +1,6 @@
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.by import By
 
 from RentalProperty import RentalProperty
 
@@ -8,7 +9,8 @@ class RentalBrowser:
 
     def __init__(self, headless=False):
         self.options = Options()
-        self.options.headless = headless
+        if headless:
+            self.options.add_argument('--headless=new')
         self.browser = Firefox(options=self.options)
 
     # Wrapper for going to URL
@@ -31,7 +33,7 @@ class RentalBrowser:
 
     # Grabs properties that are given a small card CSS class
     def grab_small_cards(self):
-        small_cards = self.browser.find_elements_by_class_name("tm-property-search-card__link")
+        small_cards = self.browser.find_elements(By.CLASS_NAME, "tm-property-search-card__link")
         return small_cards
 
     # Grabs properties that are given a big card CSS class
