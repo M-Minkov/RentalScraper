@@ -1,2 +1,3 @@
-python_version >= "3.11"
+# Project dependencies
+# Note: Python 3.11+ is recommended. Enforce this in CI or pyproject if needed.
 selenium==4.39.0
