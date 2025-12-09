@@ -1,5 +1,6 @@
 from RentalBrowser import RentalBrowser
 from RentalProperty import RentalProperty
+import os
 
 def get_int_input(prompt, default):
     val = input(f"{prompt} [{default}]: ")
@@ -24,9 +25,12 @@ browser = RentalBrowser(headless=headless)
 
 all_houses = browser.find_all_rentals(property_filter)
 
-f = open("stuff.csv", "w+")
-f.write(RentalProperty.CSV_HEADER + "\n")
-for i in all_houses[:property_limit]:
-    f.write(i.get_csv_format() + "\n")
-f.close()
+os.makedirs("output_folder", exist_ok=True)
+out_path = os.path.join("output_folder", "output.csv")
+
+with open(out_path, "w", encoding="utf-8") as f:
+    f.write(RentalProperty.CSV_HEADER + "\n")
+    for i in all_houses[:property_limit]:
+        f.write(i.get_csv_format() + "\n")
+
 browser.end()
