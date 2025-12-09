@@ -134,9 +134,9 @@ jobs:
         run: |
           # Add ROMs data only if the ROMs directory exists (some projects don't include it)
           if [ -d "ROMs" ]; then
-            pyinstaller main.py --noconfirm --onefile --windowed --name "${APP_NAME}" --add-data "ROMs${{ matrix.data_separator }}ROMs"
+            pyinstaller main.py --noconfirm --onefile --name "${APP_NAME}" --add-data "ROMs${{ matrix.data_separator }}ROMs"
           else
-            pyinstaller main.py --noconfirm --onefile --windowed --name "${APP_NAME}"
+            pyinstaller main.py --noconfirm --onefile --name "${APP_NAME}"
           fi
 
       - name: Assemble distributable archive

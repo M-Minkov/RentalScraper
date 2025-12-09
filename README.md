@@ -55,3 +55,10 @@ Run browser in headless mode? (yes/no) [yes]: y
 - Increase the property limit cautiously — scraping more pages takes more time and memory.
 
 example.csv and example.txt are just there for example outputs.
+
+**Release builds**
+- Prebuilt binaries and installers (when available) are published on the project's Releases page. Download the latest release for your platform from:
+
+	https://github.com/M-Minkov/RentalScraper/releases
+
+- Release artifacts include a single executable built with PyInstaller and a ZIP archive containing the README. If you just want to try the scraper without installing Python, download the artifact for your OS and extract or run the executable directly.
