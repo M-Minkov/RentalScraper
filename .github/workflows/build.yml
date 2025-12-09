@@ -1,7 +1,12 @@
-
-name: Build and Release RentalScraper
+name: Publish TradeMe Rental Scraper Binaries
 
 on:
+  # push:
+  #   branches:
+  #     - master
+  #   paths-ignore:
+  #     - "**.md"
+  #     - ".gitignore"
   workflow_dispatch:
     inputs:
       version_bump:
@@ -18,16 +23,88 @@ permissions:
   contents: write
 
 jobs:
+  version:
+    name: Determine version
+    runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.version.outputs.new_tag }}
+      changelog: ${{ steps.version.outputs.changelog }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate new version
+        id: version
+        env:
+          BUMP_TYPE: ${{ github.event.inputs.version_bump || 'patch' }}
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$latest_tag" ]; then
+            # No existing tags, start at v1.0.0
+            new_tag="v1.0.0"
+            changelog="Initial release"
+          else
+            echo "Latest tag: $latest_tag"
+            version="${latest_tag#v}"
+            IFS='.' read -r major minor patch <<< "$version"
+            
+            case "$BUMP_TYPE" in
+              major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+              patch)
+                patch=$((patch + 1))
+                ;;
+            esac
+            
+            new_tag="v${major}.${minor}.${patch}"
+            changelog=$(git log --pretty=format:"- %s" ${latest_tag}..HEAD 2>/dev/null || echo "Bug fixes and improvements")
+          fi
+          
+          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+          echo "New version: $new_tag"
+          
+          # Handle multiline for GitHub Actions
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "changelog<<$EOF" >> $GITHUB_OUTPUT
+          echo "$changelog" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
   build:
     name: Build on ${{ matrix.os }}
+    needs: version
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
+            data_separator: ":"
+            binary_extension: ""
+            archive_suffix: linux
           - os: macos-latest
+            data_separator: ":"
+            binary_extension: ""
+            archive_suffix: macos
           - os: windows-latest
+            data_separator: ";"
+            binary_extension: ".exe"
+            archive_suffix: windows
+    env:
+      APP_NAME: RentalScraper
+      VERSION: ${{ needs.version.outputs.new_tag }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -35,22 +112,139 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
-      - name: Install dependencies
+      - name: Install Tk dependency (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y python3-tk
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install project requirements
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
 
       - name: Install PyInstaller
         run: python -m pip install pyinstaller
 
       - name: Build executable with PyInstaller
-        run: |
-          pyinstaller main.py --noconfirm --onefile --name "RentalScraper"
+        run: >-
+          pyinstaller main.py --noconfirm --onefile --windowed
+          --name "${APP_NAME}"
+          --add-data "ROMs${{ matrix.data_separator }}ROMs"
 
-      - name: Upload artifact
+      - name: Assemble distributable archive
+        env:
+          BINARY_EXTENSION: ${{ matrix.binary_extension }}
+          ARCHIVE_SUFFIX: ${{ matrix.archive_suffix }}
+        run: |
+          python - <<'PY'
+          import os
+          import shutil
+          import pathlib
+          
+          app_name = os.environ["APP_NAME"]
+          binary_ext = os.environ["BINARY_EXTENSION"]
+          archive_suffix = os.environ["ARCHIVE_SUFFIX"]
+          version = os.environ.get("VERSION", "build")
+          
+          binary_path = pathlib.Path("dist") / f"{app_name}{binary_ext}"
+          if not binary_path.exists():
+              raise SystemExit(f"Binary {binary_path} not found")
+          
+          bundle_root = pathlib.Path("bundle")
+          bundle_root.mkdir(parents=True, exist_ok=True)
+          package_dir = bundle_root / "RentalScraper"
+          if package_dir.exists():
+              shutil.rmtree(package_dir)
+          package_dir.mkdir()
+          
+          shutil.copy2(binary_path, package_dir / binary_path.name)
+          for filename in ("README.md", "CONTROLS.md"):
+              path = pathlib.Path(filename)
+              if path.exists():
+                  shutil.copy2(path, package_dir / path.name)
+          rom_source = pathlib.Path("ROMs")
+          if rom_source.exists():
+              shutil.copytree(rom_source, package_dir / "ROMs")
+          
+          archive_dir = pathlib.Path("release-artifacts")
+          archive_dir.mkdir(parents=True, exist_ok=True)
+          archive_name = f"RentalScraper-{version}-{archive_suffix}"
+          shutil.make_archive(str(archive_dir / archive_name), "zip", root_dir=bundle_root, base_dir="RentalScraper")
+          print(f"Created {archive_name}.zip")
+          
+          PY
+
+      - name: Upload OS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RentalScraper-${{ matrix.os }}
-          path: dist/*
+          name: RentalScraper-${{ matrix.archive_suffix }}
+          path: release-artifacts/*.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish release assets
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_uploads
+
+      - name: Create and push git tag
+        env:
+          TAG_NAME: ${{ needs.version.outputs.new_tag }}
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "$TAG_NAME"
+          git push origin "refs/tags/$TAG_NAME"
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ needs.version.outputs.new_tag }}
+          release_name: ${{ needs.version.outputs.new_tag }}
+          body: ${{ needs.version.outputs.changelog }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload binaries to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPLOAD_URL_TEMPLATE: ${{ steps.create_release.outputs.upload_url }}
+        run: |
+          set -e
+          # upload_url is a template like: https://uploads.github.com/.../assets{?name,label}
+          UPLOAD_URL=${UPLOAD_URL_TEMPLATE%\{*}
+          shopt -s nullglob
+          files=(release_uploads/*/*.zip)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No artifacts found to upload" >&2
+            exit 1
+          fi
+          for asset in "${files[@]}"; do
+            filename=$(basename "$asset")
+            echo "Uploading $filename to release"
+            curl -s -X POST \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Content-Type: application/zip" \
+              --data-binary @"$asset" \
+              "$UPLOAD_URL?name=$filename"
+          done
